@@ -79,12 +79,18 @@ What to investigate next
 3. Perform binary triage next
 ```
 
+## Kali Linux integration
+
+PHM-Scanner is primarily a terminal application. A Debian/Kali package installs the `phm` command and adds a PHM-Scanner launcher to the Kali Applications menu under security and information-gathering categories. Selecting it opens a terminal and runs `phm` as the logged-in user.
+
+For development, `pipx install -e .` installs the CLI but does not modify system application menus or icons. Menu integration is provided by the Debian/Kali package.
+
 ## Install
 
 From the project folder:
 
 ```bash
-python -m pip install -e ".[dns]"
+python -m pip install -e .
 ```
 
 When packaged, the intended install flow is:

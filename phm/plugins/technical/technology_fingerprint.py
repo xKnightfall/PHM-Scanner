@@ -84,7 +84,7 @@ class TechnologyFingerprintPlugin(BasePlugin):
                     headers = {key.lower(): value for key, value in response.headers.items()}
                     final_url = response.geturl()
                     extras = self._collect_common_web_files(final_url, timeout)
-                    links = sorted({urllib.parse.urljoin(final_url, href) for href in re.findall(r"(?i)href\\s*=\\s*['\\\"]([^'\\\"]+)", body) if not href.startswith(("javascript:", "mailto:"))})[:100]
+                    links = sorted({urllib.parse.urljoin(final_url, href) for href in re.findall(r'''(?i)href\s*=\s*[\"']([^\"']+)''', body) if not href.startswith(("javascript:", "mailto:"))})[:100]
                     return {
                         "url": final_url,
                         "links": links,

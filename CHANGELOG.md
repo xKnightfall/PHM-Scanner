@@ -4,6 +4,12 @@ All notable changes to PHM-Scanner will be documented here.
 
 ## 0.1.5 - 2026-10-03
 
+### Added
+
+- Added Debian/Kali packaging files for the `phm` command.
+- Added a Kali desktop launcher and scalable PHM-Scanner application icon.
+- Added documentation for pipx development installs versus system menu integration.
+
 First public preview under the PHM-Scanner name.
 
 ### Added

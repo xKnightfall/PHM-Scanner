@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from dataclasses import dataclass
+import ipaddress, urllib.parse
 from phm.core.autodetect import plan_analysis
 from phm.core.models import Category
 from phm.analysis.file.native import detect_signatures
@@ -28,4 +29,13 @@ def resolve_target(value: str | Path) -> TargetResolution:
    specialized='archive'; plugins=['file_analysis','archive_analysis']
   else: specialized='file'; plugins=['file_analysis']
   return TargetResolution(value,'file',Category.FILE,plugins,False,True,specialized,plan.confidence,plan.reason,plan.alternatives)
+ if plan.target_type == 'url':
+  host=urllib.parse.urlsplit(value).hostname or ''
+  try: local=host.lower() == 'localhost' or ipaddress.ip_address(host).is_private or ipaddress.ip_address(host).is_loopback or ipaddress.ip_address(host).is_link_local
+  except ValueError: local=False
+  if local: plugins=['technology_fingerprint']
+ elif plan.target_type == 'ip_address':
+  try:
+   if ipaddress.ip_address(value).is_private or ipaddress.ip_address(value).is_loopback or ipaddress.ip_address(value).is_link_local: plugins=[]
+  except ValueError: pass
  return TargetResolution(value,plan.target_type,plan.category,plugins,plan.use_crypto_engine,False,specialized,plan.confidence,plan.reason,plan.alternatives)

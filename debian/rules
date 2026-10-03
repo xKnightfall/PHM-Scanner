@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	dh_auto_install
+	install -D -m 0644 packaging/kali/phm-scanner.desktop debian/phm-scanner/usr/share/applications/phm-scanner.desktop
+	install -D -m 0644 icons/phm-scanner.svg debian/phm-scanner/usr/share/icons/hicolor/scalable/apps/phm-scanner.svg

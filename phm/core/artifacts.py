@@ -70,7 +70,25 @@ class Artifact:
 
 _URL_RE = re.compile(r"https?://[^\s'\"<>]+")
 _EMAIL_RE = re.compile(r"\b[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}\b")
-_DOMAIN_RE = re.compile(r"\b(?:[a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}\b")
+_DOMAIN_RE = re.compile(r"(?<![A-Za-z0-9_-])(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}(?![A-Za-z0-9_-])")
+_FILE_SUFFIXES = {"txt", "xml", "json", "html", "htm", "js", "css", "git", "bin", "png", "jpg", "jpeg", "gif", "zip", "pdf"}
+
+def _valid_domain(value: str) -> bool:
+    """Validate a hostname structurally, without substring filtering labels."""
+    if any(separator in value for separator in ("/", "\\", ":")):
+        return False
+    labels = value.rstrip('.').split('.')
+    if len(labels) < 2 or any(not label or len(label) > 63 for label in labels): return False
+    if any(label.isdigit() for label in labels[:-1]): return False
+    if any(not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label) for label in labels): return False
+    final = labels[-1].lower()
+    # Reject complete file-like final labels and compact suffix combinations
+    # produced by concatenated filename/signature text (binpk/binpng). Do not
+    # inspect arbitrary substrings in ordinary hostname labels.
+    if final in _FILE_SUFFIXES: return False
+    if any(final == suffix + tail for suffix in _FILE_SUFFIXES for tail in ("pk", "png", "jpg", "gif")):
+        return False
+    return len(value.rstrip('.')) <= 253
 _GITHUB_REPO_RE = re.compile(r"github\.com[:/]([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)")
 _HASH_RE = re.compile(r"\b(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{40}|[A-Fa-f0-9]{56}|[A-Fa-f0-9]{64}|[A-Fa-f0-9]{96}|[A-Fa-f0-9]{128})\b")
 _JWT_RE = re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")
@@ -130,7 +148,13 @@ def extract_artifacts(
 ) -> list[Artifact]:
     """Extract common artifacts from arbitrary text-like data."""
 
-    text = str(value)
+    # Structured evidence is handled by the producing analyzer. Stringifying
+    # arbitrary dictionaries turns field adjacency (for example `bin` + `png`)
+    # into fake hostnames. Lists remain scanable because link/resource evidence
+    # is commonly represented as a list of strings.
+    if isinstance(value, dict):
+        return []
+    text = " ".join(map(str, value)) if isinstance(value, (list, tuple, set)) else str(value)
     artifacts: list[Artifact] = []
 
     def add(artifact_type: ArtifactType, raw_value: str, artifact_confidence: float = confidence, metadata: dict[str, Any] | None = None) -> None:
@@ -149,15 +173,24 @@ def extract_artifacts(
             )
         )
 
-    for url in _URL_RE.findall(text):
+    urls = _URL_RE.findall(text)
+    for url in urls:
         add(ArtifactType.URL, url, 0.9)
-    for repo in _GITHUB_REPO_RE.findall(text):
-        add(ArtifactType.GITHUB_REPO, repo, 0.9)
+    repos = _GITHUB_REPO_RE.findall(text)
+    for repo in repos:
+        add(ArtifactType.GITHUB_REPO, repo, 0.95)
+    # Generic domain extraction runs on text outside URLs/repository paths.
+    residual = text
+    for url in urls:
+        residual = residual.replace(url, " ")
+    residual = re.sub(r"(?i)github\.com[:/]?[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", " ", residual)
     for email in _EMAIL_RE.findall(text):
         add(ArtifactType.EMAIL, email, 0.9)
-    for candidate in _DOMAIN_RE.findall(text):
-        domain = canonicalize_artifact(ArtifactType.DOMAIN, candidate)
-        if domain not in _RESERVED_DOMAINS:
+    for match in _DOMAIN_RE.finditer(residual):
+        if (match.start() and residual[match.start() - 1] in '/\\') or (match.end() < len(residual) and residual[match.end()] in '/\\'):
+            continue
+        domain = canonicalize_artifact(ArtifactType.DOMAIN, match.group(0))
+        if _valid_domain(domain):
             add(ArtifactType.DOMAIN, domain, 0.82)
     for token in re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", text):
         try:
@@ -221,16 +254,9 @@ def artifacts_from_report(report: InvestigationReport) -> list[dict[str, Any]]:
                         confidence=finding.confidence,
                     )
                 )
-        # Raw data can contain observables omitted from concise evidence.
-        collected.extend(
-            extract_artifacts(
-                to_primitive(result.raw),
-                source_plugin=result.plugin,
-                source_finding="raw",
-                source_evidence="raw",
-                confidence=0.65,
-            )
-        )
+        # Do not scan raw provider responses wholesale. DNS/RDAP/geolocation
+        # payloads contain documentation hosts, timestamps, and coordinates that
+        # are not useful recursive leads. Plugins promote useful values through evidence.
 
     return [to_primitive(artifact) | {"id": artifact.id, "type": artifact.type.value} for artifact in _dedupe_artifacts(collected)]
 

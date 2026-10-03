@@ -10,7 +10,7 @@ from phm.core.correlation import build_relationship_graph
 from phm.core.summary import build_summary
 from phm.core.recommendations import build_next_steps
 
-PIVOT_TYPES={'domain','url','ip','email','username','github_repository','coordinate','file','image','archive','document'}
+PIVOT_TYPES={'domain','url','ip','email','username','github_repository','github_repo','coordinate','file','image','archive','document'}
 WEIGHTS={'github_repository':10,'domain':9,'email':8,'username':8,'url':7,'file':7,'image':7,'archive':7,'ip':5,'coordinate':4,'document':4}
 
 @dataclass

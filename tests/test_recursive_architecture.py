@@ -43,3 +43,22 @@ class RecursiveArchitectureTests(unittest.TestCase):
  def test_decimal_not_phone(self):
   from phm.core.artifacts import extract_artifacts
   self.assertNotIn('phone',[a.type.value for a in extract_artifacts('0.1793125')])
+ def test_extracted_workspace_path_is_not_a_domain_pivot(self):
+  from phm.core.artifacts import extract_artifacts
+  values=extract_artifacts('/tmp/phm-investigation-x/artifacts/ee25264acba19d70/mystery.bin')
+  self.assertFalse(any(a.type.value=='domain' for a in values))
+ def test_domain_validation_rejects_file_like_artifacts(self):
+  from phm.core.artifacts import extract_artifacts
+  for value in ('mystery.binpk','mystery.binpng','25.robots.txt','robots.txt','security.txt','sitemap.xml','/workspace/file.txt','random.file/path'):
+   self.assertFalse(any(a.type.value=='domain' for a in extract_artifacts(value)), value)
+ def test_domain_validation_preserves_labels_containing_file_words(self):
+  from phm.core.artifacts import extract_artifacts
+  for value in ('example.com','sub.example.com','binary.example.com','github.example.com','zip.example.com','png.example.com','jpg.example.com'):
+   self.assertIn('domain',[a.type.value for a in extract_artifacts(value)], value)
+ def test_extracted_png_recursion_has_single_image_analysis(self):
+  with tempfile.TemporaryDirectory() as d:
+   p=Path(d)/'outer.zip'; self.make_zip(p,{'mystery.bin':PNG})
+   report=InvestigationRunner(max_nodes=4,max_seconds=3).run(str(p))
+   image_targets=[r.target for r in report.results if r.plugin=='image_analysis']
+   self.assertEqual(len(image_targets),1)
+   self.assertNotIn('mystery.binpk', [n['value'] for n in report.metadata['nodes']])

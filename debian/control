@@ -1,0 +1,15 @@
+Source: phm-scanner
+Section: net
+Priority: optional
+Maintainer: PHM Maintainer <email4zeus@yahoo.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3-all, python3-setuptools
+Standards-Version: 4.6.2
+Homepage: https://github.com/xKnightfall/PHM-Scanner
+Rules-Requires-Root: no
+
+Package: phm-scanner
+Architecture: all
+Depends: ${python3:Depends}, ${misc:Depends}, python3-dnspython
+Description: Cybersecurity Investigation Toolkit
+ PHM-Scanner is a command-line tool for first-pass cybersecurity analysis,
+ recursive artifact investigation, public-source research, and file triage.

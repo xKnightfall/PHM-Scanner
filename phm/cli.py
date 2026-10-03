@@ -39,6 +39,8 @@ def render_banner() -> str:
 
 
 def _looks_like_missing_path(value: str) -> bool:
+    if value.startswith(("http://", "https://")):
+        return False
     path = Path(value)
     return (any(sep in value for sep in ("/", "\\")) or path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".zip", ".gz", ".pdf", ".txt", ".json", ".exe", ".dll", ".elf"}) and not path.exists()
 
@@ -207,8 +209,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not args.command:
-        parser.print_help(sys.stderr)
-        return 2
+        print("PHM-Scanner\nCybersecurity Investigation Toolkit\n")
+        parser.print_help()
+        return 0
 
     if args.command == "storage":
         store = InvestigationStore(args.db)

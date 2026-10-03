@@ -1,1 +1,1 @@
--e .[dev,dns]
+-e .[dev]

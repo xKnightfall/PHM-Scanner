@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=PHM-Scanner
+Comment=Cybersecurity Investigation Toolkit
+Exec=phm
+Icon=phm-scanner
+Terminal=true
+Categories=Security;Network;System;
+Keywords=security;investigation;OSINT;forensics;reconnaissance;
+X-Kali-Package=phm-scanner
