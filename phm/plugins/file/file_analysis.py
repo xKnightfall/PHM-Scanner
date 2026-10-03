@@ -60,6 +60,8 @@ class FileAnalysisPlugin(BasePlugin):
         evidence.append(Evidence(source="file.language_hints", value=raw.get("language_hints", [])))
         evidence.append(Evidence(source="file.embedded_archives", value=raw.get("embedded_archives", [])))
         evidence.append(Evidence(source="file.embedded_executables", value=raw.get("embedded_executables", [])))
+        evidence.append(Evidence(source="file.image_info", value=raw.get("image_info", {})))
+        evidence.append(Evidence(source="file.archive_info", value=raw.get("archive_info", {})))
         evidence.append(Evidence(source="file.potential_secrets", value=raw.get("potential_secrets", [])))
         evidence.append(Evidence(source="file.suspicious_patterns", value=raw.get("suspicious_patterns", [])))
         if raw.get("binary_info"):

@@ -137,8 +137,25 @@ class _BuiltinTransform:
         return self._decoder(value)
 
 
+_BASE91 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~\""
+
+def _decode_base91(value: str) -> list[TransformCandidate]:
+    try:
+        table = {c:i for i,c in enumerate(_BASE91)}; b=0; n=0; v=-1; out=bytearray()
+        for c in value.strip():
+            if c not in table: continue
+            if v < 0: v=table[c]
+            else:
+                v += table[c]*91; b |= v << n; n += 13 if (v & 8191) > 88 else 14
+                while n >= 8: out.append(b & 255); b >>= 8; n -= 8
+                v=-1
+        text=bytes(out).decode('utf-8',errors='replace')
+        return [TransformCandidate(text,.7,{"encoding":"base91","text_score":score_text(text)})] if text else []
+    except Exception: return []
+
 def _builtin_transforms() -> list[_BuiltinTransform]:
     return [
+        _BuiltinTransform("base91_decoder", lambda value: len(value.strip()) >= 8 and all(c in _BASE91 for c in value.strip()), _decode_base91, 0.67),
         _BuiltinTransform("base32_decoder", _is_base32, lambda value: _decode_text(value, lambda raw: base64.b32decode(_pad(raw), casefold=True)), 0.84),
         _BuiltinTransform("base85_decoder", _is_base85, lambda value: _decode_text(value, lambda raw: base64.b85decode(raw.encode())), 0.78),
         _BuiltinTransform("ascii85_decoder", lambda value: "<~" in value or "~>" in value, lambda value: _decode_text(value, lambda raw: base64.a85decode(raw.encode(), adobe="<~" in raw)), 0.78),

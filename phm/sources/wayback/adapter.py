@@ -67,7 +67,7 @@ class WaybackAdapter(SourceAdapter):
         return result
 
     def _get_json(self, url: str) -> Any:
-        request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.3"})
+        request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.4"})
         with urllib.request.urlopen(request, timeout=self.timeout) as response:  # noqa: S310 - fixed public archive endpoints
             return json.loads(response.read().decode("utf-8", errors="replace"))
 

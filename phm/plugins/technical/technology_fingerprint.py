@@ -76,7 +76,7 @@ class TechnologyFingerprintPlugin(BasePlugin):
         timeout = float(target.options.get("timeout", 8.0))
         last_error = ""
         for url in urls:
-            request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.3"})
+            request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.4"})
             try:
                 with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - analyst-provided target
                     body = response.read(300_000).decode("utf-8", errors="replace")
@@ -169,7 +169,7 @@ class TechnologyFingerprintPlugin(BasePlugin):
     @staticmethod
     def _fetch_small(url: str, timeout: float, kind: str) -> dict[str, Any]:
         try:
-            request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.3"})
+            request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.4"})
             with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - target-controlled public URL
                 text = response.read(80_000).decode("utf-8", errors="replace")
             lines = [line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")]

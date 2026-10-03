@@ -87,6 +87,7 @@ def _add_common_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--cache-db", default="investigations/source_cache.db", help="SQLite database path for lookup cache")
     parser.add_argument("--save", action="store_true", help="persist the investigation report to SQLite")
     parser.add_argument("--db", default="investigations/phm.db", help="SQLite database path for --save")
+    parser.add_argument("--mode", choices=("auto", "osint", "steg", "crypto"), default="auto", help="choose an investigation track; auto follows useful pivots")
 
 
 def build_parser() -> argparse.ArgumentParser:

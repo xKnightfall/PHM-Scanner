@@ -22,6 +22,7 @@ _USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,39}$")
 _BASE64ISH_RE = re.compile(r"^[A-Za-z0-9+/\s_-]+={0,2}$")
 _HEXISH_RE = re.compile(r"^(?:0x)?[0-9A-Fa-f\s:.-]{4,}$")
 _COMMON_ROT13_WORDS = {"hello", "flag", "secret", "password", "admin", "token", "attack", "defend"}
+_COORD_RE = re.compile(r"^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$")
 
 
 @dataclass(slots=True)
@@ -72,6 +73,11 @@ def score_interpretations(target: str) -> list[dict[str, object]]:
         )
 
     path = Path(raw)
+    coordinate_match = _COORD_RE.fullmatch(raw)
+    if coordinate_match:
+        latitude, longitude = map(float, coordinate_match.groups())
+        if -90 <= latitude <= 90 and -180 <= longitude <= 180:
+            add("coordinates", Category.GEOSPATIAL, 0.99, "latitude/longitude pair", ["geolocation_lookup"])
     if path.exists() and path.is_file():
         add("file", Category.FILE, 0.99, "local file path exists", ["file_analysis"])
 

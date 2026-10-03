@@ -2,13 +2,17 @@
 
 All notable changes to PHM-Scanner will be documented here.
 
-## 0.1.3 - Unreleased
+## 0.1.4 - 2026-10-03
 
 First public preview under the PHM-Scanner name.
 
 ### Added
 
+- PNG chunk inspection, text-chunk identification, and trailing-data detection during native image triage.
+- ZIP entry listing and encrypted-archive indicators during native archive triage.
 - Main `phm analyze <target>` workflow.
+- OSINT track documentation covering identity, domains, subdomains, DNS, infrastructure, network location, websites, and historical public sources.
+- Public geolocation lookup for coordinates and place clues through OpenStreetMap/Nominatim, including reverse-geocoded addresses and map candidates.
 - `phm` console command.
 - `--banner` command showing the Projekt Hail Mary banner.
 - Target detection for files, domains, IP addresses, URLs, emails, usernames, hashes, GitHub repositories, and encoded text.
@@ -38,7 +42,7 @@ First public preview under the PHM-Scanner name.
 
 - Renamed the public project direction to PHM-Scanner.
 - Renamed the Python package and command to `phm`.
-- Updated version display to `Projekt Hail Mary 0.1.3`.
+- Updated version display to `Projekt Hail Mary 0.1.4`.
 - Documentation now uses simpler, more practical language.
 - Roadmap now focuses on improving existing checks instead of adding more areas.
 
