@@ -103,6 +103,7 @@ class TerminalReporter(Reporter):
             return "\n".join(lines)
 
         self._append_summary(lines, report)
+        self._append_pivots(lines, report)
         self._append_findings(lines, report, verbose)
         self._append_next_steps(lines, report)
         return "\n".join(lines)
@@ -135,6 +136,15 @@ class TerminalReporter(Reporter):
     def _short(value: str, limit: int = 100) -> str:
         value = " ".join(value.split())
         return value if len(value) <= limit else value[:limit-3] + "..."
+
+    def _append_pivots(self, lines: list[str], report: InvestigationReport) -> None:
+        pivots = report.metadata.get('pivots', []) if isinstance(report.metadata, dict) else []
+        if not pivots: return
+        lines.append('')
+        lines.append('PIVOTS')
+        for pivot in pivots[:12]:
+            lines.append(f"  └─ {self._short(str(pivot.get('source')), 45)} → {self._short(str(pivot.get('relationship')), 80)}")
+        if len(pivots) > 12: lines.append(f'  ... and {len(pivots)-12} more')
 
     def _append_findings(self, lines: list[str], report: InvestigationReport, verbose: bool) -> None:
         lines.append("")

@@ -40,7 +40,7 @@ class GeolocationLookupPlugin(BasePlugin):
 
     def _request(self, url):
         try:
-            request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.4 (public OSINT research)"})
+            request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.5 (public OSINT research)"})
             with urllib.request.urlopen(request, timeout=8) as response:
                 return json.loads(response.read().decode("utf-8"))
         except Exception as exc:  # public source failure must not stop an investigation

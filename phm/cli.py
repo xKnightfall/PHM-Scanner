@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from phm import __version__
-from phm.core.autodetect import plan_analysis
+from phm.core.target_resolution import resolve_target
 from phm.core.models import Category
 from phm.core.orchestrator import InvestigationOrchestrator
 from phm.core.registry import registry
@@ -36,6 +36,11 @@ Version {version}
 
 def render_banner() -> str:
     return BANNER.format(version=__version__)
+
+
+def _looks_like_missing_path(value: str) -> bool:
+    path = Path(value)
+    return (any(sep in value for sep in ("/", "\\")) or path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".zip", ".gz", ".pdf", ".txt", ".json", ".exe", ".dll", ".elf"}) and not path.exists()
 
 
 def _read_input_or_file(value: str) -> str:
@@ -87,7 +92,7 @@ def _add_common_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--cache-db", default="investigations/source_cache.db", help="SQLite database path for lookup cache")
     parser.add_argument("--save", action="store_true", help="persist the investigation report to SQLite")
     parser.add_argument("--db", default="investigations/phm.db", help="SQLite database path for --save")
-    parser.add_argument("--mode", choices=("auto", "osint", "steg", "crypto"), default="auto", help="choose an investigation track; auto follows useful pivots")
+    parser.add_argument("--mode", choices=("auto",), default="auto", help="use PHM's unified evidence-ranked investigation planner")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -109,6 +114,8 @@ def build_parser() -> argparse.ArgumentParser:
     investigate = subparsers.add_parser("investigate", help="follow useful public clues through bounded passive pivots")
     investigate.add_argument("target", help="starting clue")
     investigate.add_argument("--max-nodes", type=int, default=12, help="maximum unique clues to investigate")
+    investigate.add_argument("--max-depth", type=int, default=4, help="maximum pivot depth")
+    investigate.add_argument("--max-seconds", type=int, default=60, help="maximum investigation time")
     _add_common_options(investigate)
 
     for command in ["technical", "personal", "organization", "org", "geospatial", "media", "historical"]:
@@ -227,36 +234,34 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "investigate":
         from phm.core.investigator import InvestigationRunner
-        report = InvestigationRunner(args.max_nodes, args.max_workers).run(args.target, options={"timeout": args.timeout, "cache": args.cache, "cache_ttl": args.cache_ttl, "cache_path": args.cache_db})
+        report = InvestigationRunner(args.max_nodes, args.max_depth, args.max_seconds, args.max_workers).run(args.target, options={"timeout": args.timeout, "cache": args.cache, "cache_ttl": args.cache_ttl, "cache_path": args.cache_db})
         return _render_or_write(report, args.format, args.output, args.save, args.db, args.verbose, args.no_banner)
 
     if args.command == "analyze":
-        plan = plan_analysis(args.target)
-        selected_plugins = args.plugins or plan.plugins
-        if plan.target_type == "file" and not args.plugins:
-            suffix = Path(args.target).suffix.lower()
-            if suffix in {".png", ".jpg", ".jpeg", ".gif"}: selected_plugins = ["file_analysis", "image_analysis"]
-            elif suffix in {".zip", ".jar"}: selected_plugins = ["file_analysis", "archive_analysis"]
-        if plan.use_crypto_engine and not selected_plugins:
-            report = SmartCryptoEngine().run(plan.target)
+        if _looks_like_missing_path(args.target):
+            print("ERROR\n  File not found: " + args.target, file=sys.stderr)
+            return 1
+        resolution = resolve_target(args.target)
+        selected_plugins = args.plugins or resolution.plugins
+        if resolution.use_crypto_engine and not selected_plugins:
+            report = SmartCryptoEngine().run(resolution.value)
         else:
             orchestrator = InvestigationOrchestrator()
             report = orchestrator.run(
-                category=plan.category,
-                target_value=plan.target,
+                category=resolution.category,
+                target_value=resolution.value,
                 plugin_names=selected_plugins,
                 options={"timeout": args.timeout, "cache": args.cache, "cache_ttl": args.cache_ttl, "cache_path": args.cache_db},
                 max_workers=args.max_workers,
             )
         report.metadata["analysis_plan"] = {
-            "target_type": plan.target_type,
-            "category": plan.category.value,
+            "target_type": resolution.target_type,
+            "category": resolution.category.value,
             "plugins": selected_plugins,
-            "use_crypto_engine": plan.use_crypto_engine and not selected_plugins,
-            "confidence": plan.confidence,
-            "reason": plan.reason,
-            "notes": plan.notes,
-            "alternatives": plan.alternatives,
+            "use_crypto_engine": resolution.use_crypto_engine and not selected_plugins,
+            "confidence": resolution.confidence,
+            "reason": resolution.reason,
+            "alternatives": resolution.alternatives or [],
         }
         return _render_or_write(report, args.format, args.output, args.save, args.db, args.verbose, args.no_banner)
 
@@ -301,6 +306,10 @@ def main(argv: list[str] | None = None) -> int:
         category = _category_from_name(args.command)
         target = args.target
         shortcut_plugins = None
+
+    if category in {Category.FILE, Category.IMAGE, Category.ARCHIVE, Category.DOCUMENT, Category.BINARY, Category.METADATA} and not Path(target).is_file():
+        print("ERROR\n  File not found: " + target, file=sys.stderr)
+        return 1
 
     if category == Category.CRYPTO and not (args.plugins or shortcut_plugins):
         value = _read_input_or_file(target)

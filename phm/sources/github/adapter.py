@@ -16,7 +16,7 @@ from typing import Any
 from phm.sources.base import SourceAdapter
 
 GITHUB_API_BASE = "https://api.github.com"
-USER_AGENT = "PHM-Scanner/0.1.4"
+USER_AGENT = "PHM-Scanner/0.1.5"
 
 
 class GitHubAPIError(RuntimeError):

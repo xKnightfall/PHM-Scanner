@@ -187,7 +187,15 @@ def extract_artifacts(
                 add(ArtifactType.COORDINATE, f"{lat_f:.6f},{lon_f:.6f}", 0.78)
         except ValueError:
             pass
+    known_ip_text = set()
+    for candidate in re.findall(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])", text):
+        try:
+            ipaddress.ip_address(candidate); known_ip_text.add(candidate)
+        except ValueError:
+            pass
     for phone in _PHONE_RE.findall(text):
+        if phone.strip() in known_ip_text or phone.replace(" ", "") in known_ip_text:
+            continue
         digits = re.sub(r"\D", "", phone)
         if 8 <= len(digits) <= 15:
             add(ArtifactType.PHONE, phone, 0.55, {"digits": digits})

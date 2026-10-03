@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phm-scanner"
-version = "0.1.4"
+version = "0.1.5"
 description = "Command-line tool for first-pass cybersecurity analysis"
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = ["dnspython>=2.6"]
 license = {text = "MIT"}
 authors = [{name = "PHM Maintainer"}]
 keywords = ["cybersecurity", "forensics", "osint", "reconnaissance", "ctf", "cryptography", "malware-analysis"]
@@ -22,14 +23,13 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dns = ["dnspython>=2.6"]
 dev = []
 
 [project.urls]
-Homepage = "https://github.com/your-username/PHM-Scanner"
-Documentation = "https://github.com/your-username/PHM-Scanner/tree/main/docs"
-Issues = "https://github.com/your-username/PHM-Scanner/issues"
-Source = "https://github.com/your-username/PHM-Scanner"
+Homepage = "https://github.com/PHM-Scanner/PHM-Scanner"
+Documentation = "https://github.com/PHM-Scanner/PHM-Scanner/tree/main/docs"
+Issues = "https://github.com/PHM-Scanner/PHM-Scanner/issues"
+Source = "https://github.com/PHM-Scanner/PHM-Scanner"
 
 [project.scripts]
 phm = "phm.cli:main"

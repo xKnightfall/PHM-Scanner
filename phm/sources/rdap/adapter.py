@@ -48,7 +48,7 @@ class RDAPAdapter(SourceAdapter):
             "metadata": {"source": self.source_name, "cached": False},
             "errors": [],
         }
-        request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.4"})
+        request = urllib.request.Request(url, headers={"User-Agent": "PHM-Scanner/0.1.5"})
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:  # noqa: S310 - fixed public RDAP endpoint
                 data = json.loads(response.read().decode("utf-8", errors="replace"))
