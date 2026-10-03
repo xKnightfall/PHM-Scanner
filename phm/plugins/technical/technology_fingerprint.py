@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import urllib.parse
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -83,8 +84,10 @@ class TechnologyFingerprintPlugin(BasePlugin):
                     headers = {key.lower(): value for key, value in response.headers.items()}
                     final_url = response.geturl()
                     extras = self._collect_common_web_files(final_url, timeout)
+                    links = sorted({urllib.parse.urljoin(final_url, href) for href in re.findall(r"(?i)href\\s*=\\s*['\\\"]([^'\\\"]+)", body) if not href.startswith(("javascript:", "mailto:"))})[:100]
                     return {
                         "url": final_url,
+                        "links": links,
                         "status": response.status,
                         "headers": headers,
                         "html_excerpt": body[:120_000],
@@ -128,6 +131,7 @@ class TechnologyFingerprintPlugin(BasePlugin):
         evidence = [
             Evidence(source="http.status", value=raw.get("status")),
             Evidence(source="http.url", value=raw.get("url")),
+            Evidence(source="http.links", value=raw.get("links", [])),
             Evidence(source="http.security_headers", value=web_details.get("security_headers")),
             Evidence(source="http.cookies", value=web_details.get("cookies")),
             Evidence(source="http.csp", value=web_details.get("csp")),

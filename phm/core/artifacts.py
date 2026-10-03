@@ -194,7 +194,7 @@ def extract_artifacts(
         except ValueError:
             pass
     for phone in _PHONE_RE.findall(text):
-        if phone.strip() in known_ip_text or phone.replace(" ", "") in known_ip_text:
+        if phone.strip() in known_ip_text or phone.replace(" ", "") in known_ip_text or re.fullmatch(r"[+-]?\d+\.\d+", phone.strip()):
             continue
         digits = re.sub(r"\D", "", phone)
         if 8 <= len(digits) <= 15:

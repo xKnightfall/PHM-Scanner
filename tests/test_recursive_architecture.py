@@ -40,3 +40,6 @@ class RecursiveArchitectureTests(unittest.TestCase):
   from phm.core.artifacts import extract_artifacts
   types=[a.type.value for a in extract_artifacts('8.8.8.8')]
   self.assertIn('ip',types); self.assertNotIn('phone',types)
+ def test_decimal_not_phone(self):
+  from phm.core.artifacts import extract_artifacts
+  self.assertNotIn('phone',[a.type.value for a in extract_artifacts('0.1793125')])
