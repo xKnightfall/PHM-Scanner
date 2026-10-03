@@ -106,6 +106,11 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("target", help="file, domain, IP, URL, email, username, hash, or encoded text")
     _add_common_options(analyze)
 
+    investigate = subparsers.add_parser("investigate", help="follow useful public clues through bounded passive pivots")
+    investigate.add_argument("target", help="starting clue")
+    investigate.add_argument("--max-nodes", type=int, default=12, help="maximum unique clues to investigate")
+    _add_common_options(investigate)
+
     for command in ["technical", "personal", "organization", "org", "geospatial", "media", "historical"]:
         sub = subparsers.add_parser(command, help=f"run {command} checks")
         sub.add_argument("target", help="investigation target")
@@ -220,9 +225,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0
 
+    if args.command == "investigate":
+        from phm.core.investigator import InvestigationRunner
+        report = InvestigationRunner(args.max_nodes, args.max_workers).run(args.target, options={"timeout": args.timeout, "cache": args.cache, "cache_ttl": args.cache_ttl, "cache_path": args.cache_db})
+        return _render_or_write(report, args.format, args.output, args.save, args.db, args.verbose, args.no_banner)
+
     if args.command == "analyze":
         plan = plan_analysis(args.target)
         selected_plugins = args.plugins or plan.plugins
+        if plan.target_type == "file" and not args.plugins:
+            suffix = Path(args.target).suffix.lower()
+            if suffix in {".png", ".jpg", ".jpeg", ".gif"}: selected_plugins = ["file_analysis", "image_analysis"]
+            elif suffix in {".zip", ".jar"}: selected_plugins = ["file_analysis", "archive_analysis"]
         if plan.use_crypto_engine and not selected_plugins:
             report = SmartCryptoEngine().run(plan.target)
         else:
@@ -270,9 +284,9 @@ def main(argv: list[str] | None = None) -> int:
         "hash": (Category.CRYPTO, ["hash_identifier"]),
         "file": (Category.FILE, ["file_analysis"]),
         "binary": (Category.FILE, ["file_analysis"]),
-        "image": (Category.FILE, ["file_analysis"]),
+        "image": (Category.FILE, ["image_analysis"]),
         "document": (Category.FILE, ["file_analysis"]),
-        "archive": (Category.FILE, ["file_analysis"]),
+        "archive": (Category.FILE, ["archive_analysis"]),
         "metadata": (Category.FILE, ["file_analysis"]),
     }
 

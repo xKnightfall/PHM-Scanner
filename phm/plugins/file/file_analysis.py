@@ -75,8 +75,7 @@ class FileAnalysisPlugin(BasePlugin):
         else:
             description += " No known magic-byte signature was identified."
 
-        return [
-            Finding(
+        findings = [Finding(
                 title="Native file triage",
                 description=description,
                 category=self.category,
@@ -97,6 +96,10 @@ class FileAnalysisPlugin(BasePlugin):
                 },
             )
         ]
+        decoded = [item for item in raw.get("decoded_candidates", []) if item.get("value")]
+        if decoded:
+            findings.append(Finding(title="Decoded candidate extracted from file", description="A file string was passed through the bounded crypto engine; the best candidates are now available as investigation artifacts.", category=self.category, plugin=self.name, confidence=max(float(item.get("confidence",0)) for item in decoded), severity=Severity.LOW, evidence=[Evidence(source="file.decoded_candidate", value=item) for item in decoded[:20]], metadata={"recursive": True, "candidate_count": len(decoded)}))
+        return findings
 
     def report(self, target: TargetContext, raw: dict[str, Any], findings: list[Finding], errors: list[str] | None = None):
         return self._result(target, raw, findings, errors)

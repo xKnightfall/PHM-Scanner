@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from html import escape
 from pathlib import Path
 
+from phm import __version__
 from phm.core.models import InvestigationReport, PluginResult, to_primitive
 
 
@@ -69,8 +70,11 @@ class TerminalReporter(Reporter):
     def render(self, report: InvestigationReport) -> str:
         verbose = bool(report.metadata.get("display", {}).get("verbose")) if isinstance(report.metadata, dict) else False
         lines: list[str] = []
-        lines.append(f"PHM Report :: {report.target}")
-        lines.append("=" * min(88, max(32, len(lines[-1]))))
+        lines.append(f"╭─ PHM {__version__} • Investigation {'─' * 24}╮")
+        lines.append("╰──────────────────────────────────────────────╯")
+        lines.append("")
+        lines.append("TARGET")
+        lines.append(f"  {self._short(report.target, 120)}")
 
         plan = report.metadata.get("analysis_plan") if isinstance(report.metadata, dict) else None
         if isinstance(plan, dict):
@@ -110,22 +114,31 @@ class TerminalReporter(Reporter):
         if not fields and not interesting:
             return
         lines.append("")
-        lines.append("Summary")
-        lines.append("-------")
-        for item in fields[:12]:
+        lines.append("SUMMARY")
+        for item in fields[:10]:
             label = item.get("label", "Item")
-            value = item.get("value", "")
-            lines.append(f"{label}: {value}")
+            value = self._short(str(item.get("value", "")), 100)
+            lines.append(f"  {label:<14} {value}")
         if interesting:
             lines.append("")
-            lines.append("Interesting findings:")
-            for item in interesting[:8]:
-                lines.append(f"  - {item}")
+            lines.append("INTERESTING")
+            for item in interesting[:8]: lines.append(f"  [!] {self._short(str(item), 100)}")
+        artifacts = report.metadata.get("artifacts", [])
+        if artifacts:
+            lines.append("")
+            lines.append("ARTIFACTS")
+            for artifact in artifacts[:12]:
+                lines.append(f"  └─ {artifact.get('type', 'artifact')}: {self._short(str(artifact.get('value','')), 90)}")
+            if len(artifacts) > 12: lines.append(f"  ... and {len(artifacts)-12} more")
+
+    @staticmethod
+    def _short(value: str, limit: int = 100) -> str:
+        value = " ".join(value.split())
+        return value if len(value) <= limit else value[:limit-3] + "..."
 
     def _append_findings(self, lines: list[str], report: InvestigationReport, verbose: bool) -> None:
         lines.append("")
-        lines.append("Findings")
-        lines.append("--------")
+        lines.append("FINDINGS")
         shown = 0
         for result in report.results:
             if verbose:
@@ -136,13 +149,13 @@ class TerminalReporter(Reporter):
                 lines.append(f"- Some checks failed in {result.plugin}. Re-run with --verbose for details.")
             for finding in result.findings:
                 shown += 1
-                prefix = "  -" if verbose else "-"
+                prefix = "  [!]" if finding.severity.value in {"medium", "high"} else "  [+]"
                 if verbose:
                     conf = round(finding.confidence * 100)
                     lines.append(f"{prefix} {finding.title} ({conf}%)")
                 else:
                     lines.append(f"{prefix} {finding.title}")
-                lines.append(f"  {finding.description}")
+                lines.append(f"      {self._short(finding.description, 110)}")
                 if verbose:
                     for evidence in finding.evidence:
                         lines.append(f"    evidence: {evidence.source} = {evidence.value}")
@@ -157,8 +170,7 @@ class TerminalReporter(Reporter):
         if not next_steps:
             return
         lines.append("")
-        lines.append("What to investigate next")
-        lines.append("------------------------")
+        lines.append("NEXT")
         for index, step in enumerate(next_steps[:6], start=1):
             title = step.get("title", "Review findings")
             why = step.get("why", "This may help continue the investigation.")

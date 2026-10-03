@@ -68,6 +68,14 @@ def archive_triage(data,signatures,path):
  return out
 def analyze_file(path,max_strings=300):
  p=Path(path); data=p.read_bytes(); sig=detect_signatures(data); strings=extract_strings(data,max_strings=max_strings); joined='\n'.join(strings)
+ decoded_candidates=[]
+ try:
+  from phm.crypto_engine import SmartCryptoEngine
+  for value in strings[:40]:
+   if len(value)>=8:
+    crypto=SmartCryptoEngine(max_depth=4,beam_width=4).run(value)
+    decoded_candidates.append(crypto.results[0].raw.get('best',{}) if crypto.results else {})
+ except Exception: pass
  arts=extract_artifacts(joined); iocs={}
  for a in arts: iocs.setdefault(a.type.value,[]).append(a.value)
- return {'path':str(p),'name':p.name,'size':len(data),'hashes':file_hashes(data),'entropy':shannon_entropy(data),'signatures':sig,'extension':p.suffix.lower().lstrip('.'),'extension_matches_signature':extension_matches(p,sig),'strings':strings,'iocs':iocs,'embedded_signatures':detect_embedded_signatures(data),'embedded_archives':[x for x in detect_embedded_signatures(data) if x['artifact_type']=='archive'],'embedded_executables':[x for x in detect_embedded_signatures(data) if x['artifact_type']=='binary'],'image_info':image_triage(data,sig),'archive_info':archive_triage(data,sig,p),'potential_secrets':scan_text_for_secrets(joined,str(p),max_findings=25),'language_hints':[],'interesting_filename':bool(PAT.search(p.name)),'suspicious_patterns':[{'pattern':m.group(0),'string':s[:180]} for s in strings if (m:=SUSP.search(s))],'binary_info':{}}
+ return {'path':str(p),'name':p.name,'size':len(data),'hashes':file_hashes(data),'entropy':shannon_entropy(data),'signatures':sig,'extension':p.suffix.lower().lstrip('.'),'extension_matches_signature':extension_matches(p,sig),'strings':strings,'decoded_candidates':decoded_candidates[:20],'iocs':iocs,'embedded_signatures':detect_embedded_signatures(data),'embedded_archives':[x for x in detect_embedded_signatures(data) if x['artifact_type']=='archive'],'embedded_executables':[x for x in detect_embedded_signatures(data) if x['artifact_type']=='binary'],'image_info':image_triage(data,sig),'archive_info':archive_triage(data,sig,p),'potential_secrets':scan_text_for_secrets(joined,str(p),max_findings=25),'language_hints':[],'interesting_filename':bool(PAT.search(p.name)),'suspicious_patterns':[{'pattern':m.group(0),'string':s[:180]} for s in strings if (m:=SUSP.search(s))],'binary_info':{}}
